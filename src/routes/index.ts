@@ -7,6 +7,7 @@ import attendanceRoutes from './attendanceRoutes';
 import workoutRoutes from './workoutRoutes';
 import dietRoutes from './dietRoutes';
 import authRoutes from './authRoutes';
+import progressRoutes from './progressRoutes';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use('/memberships', membershipRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/workouts', workoutRoutes);
 router.use('/diets', dietRoutes);
+router.use('/progress', progressRoutes);
 
 // Health check route to prevent Render spin-down
 router.get('/ping', (req, res) => {

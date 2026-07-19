@@ -52,3 +52,37 @@ export const getGymById = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 };
+
+export const getGymAchievements = async (req: Request, res: Response): Promise<void> => {
+  const { gymId } = req.params;
+  try {
+    const achievements = await prisma.gymAchievement.findMany({
+      where: { gymId },
+      orderBy: { date: 'desc' }
+    });
+    res.json(achievements);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+};
+
+export const getGymTrainers = async (req: Request, res: Response): Promise<void> => {
+  const { gymId } = req.params;
+  try {
+    const trainers = await prisma.trainer.findMany({
+      where: { gymId },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            profilePhotoUrl: true,
+            gender: true
+          }
+        }
+      }
+    });
+    res.json(trainers);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+};

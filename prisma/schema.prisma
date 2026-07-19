@@ -44,6 +44,10 @@ model Profile {
   address           String?
   emergencyContact  String?
   profilePhotoUrl   String?
+  height            Float?
+  currentWeight     Float?
+  targetWeight      Float?
+  fitnessLevel      String?  // Beginner, Intermediate, Advanced
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -55,6 +59,8 @@ model Profile {
   progressLogs      ProgressLog[]
   achievements      Achievement[]
   notifications     Notification[]
+  goals             UserGoal[]
+  dailyStats        DailyStat[]
   assignedToTrainer MemberTrainer[] @relation("MemberToTrainer")
 }
 
@@ -76,6 +82,7 @@ model Gym {
   workoutPlans   WorkoutPlan[]
   dietPlans      DietPlan[]
   gallery        Gallery[]
+  achievements   GymAchievement[]
 }
 
 model UserGymRole {
@@ -260,6 +267,37 @@ model ProgressLog {
   user             Profile  @relation(fields: [userId], references: [id])
 }
 
+model UserGoal {
+  id          String   @id @default(uuid())
+  userId      String
+  goalType    String   // WEIGHT_LOSS, MUSCLE_GAIN, ENDURANCE, FLEXIBILITY
+  targetValue Float?
+  currentValue Float?
+  deadline    DateTime?
+  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, ABANDONED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        Profile  @relation(fields: [userId], references: [id])
+}
+
+model DailyStat {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime @db.Date
+  caloriesBurned  Int?
+  activeMinutes   Int?
+  waterIntakeLiters Float?
+  stepsCount      Int?
+  sleepHours      Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            Profile  @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
 // ---------------------------------------------------------
 // COMMUNITY & SYSTEM
 // ---------------------------------------------------------
@@ -279,6 +317,17 @@ model Gallery {
   imageUrl    String
   caption     String?
   uploadedAt  DateTime @default(now())
+
+  gym         Gym      @relation(fields: [gymId], references: [id])
+}
+
+model GymAchievement {
+  id          String   @id @default(uuid())
+  gymId       String
+  title       String
+  description String?
+  imageUrl    String?
+  date        DateTime @default(now())
 
   gym         Gym      @relation(fields: [gymId], references: [id])
 }

@@ -76,3 +76,22 @@ export const getAllExercises = async (req: Request, res: Response): Promise<void
     res.status(500).json({ error: error.message });
   }
 };
+
+export const createExercise = async (req: Request, res: Response): Promise<void> => {
+  const { name, muscleGroup, videoUrl, instructions, difficulty } = req.body;
+  try {
+    const exercise = await prisma.exercise.create({
+      data: {
+        name,
+        muscleGroup,
+        videoUrl,
+        instructions,
+        difficulty
+      }
+    });
+    res.status(201).json(exercise);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 
 export const markAttendance = async (req: Request, res: Response): Promise<void> => {
-  const { gymId, userId } = req.body;
+  const gymId = req.body.gymId;
+  const userId = req.body.userId || (req as any).user?.id;
   
   try {
     // Basic date truncation to YYYY-MM-DD for uniqueness check
