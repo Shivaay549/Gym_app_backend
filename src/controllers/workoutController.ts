@@ -95,3 +95,73 @@ export const createExercise = async (req: Request, res: Response): Promise<void>
   }
 };
 
+export const getGlobalWorkoutTemplates = async (req: Request, res: Response): Promise<void> => {
+  const { gymId } = req.params;
+  
+  try {
+    const plans = await prisma.workoutPlan.findMany({
+      where: { 
+        gymId,
+        memberId: null
+      },
+      include: {
+        exercises: {
+          include: { exercise: true }
+        }
+      }
+    });
+
+    res.json(plans);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const upsertGlobalWorkoutTemplate = async (req: Request, res: Response): Promise<void> => {
+  const { gymId, name, goal, exercises } = req.body;
+
+  try {
+    let plan = await prisma.workoutPlan.findFirst({
+      where: {
+        gymId,
+        memberId: null,
+        goal
+      }
+    });
+
+    if (plan) {
+      // Delete existing exercises to replace them
+      await prisma.workoutExercise.deleteMany({
+        where: { planId: plan.id }
+      });
+      
+      plan = await prisma.workoutPlan.update({
+        where: { id: plan.id },
+        data: {
+          name,
+          exercises: {
+            create: exercises
+          }
+        },
+        include: { exercises: { include: { exercise: true } } }
+      });
+    } else {
+      plan = await prisma.workoutPlan.create({
+        data: {
+          gymId,
+          name,
+          goal,
+          exercises: {
+            create: exercises
+          }
+        },
+        include: { exercises: { include: { exercise: true } } }
+      });
+    }
+
+    res.status(200).json(plan);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

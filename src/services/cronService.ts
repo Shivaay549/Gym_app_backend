@@ -32,7 +32,23 @@ cron.schedule('1 0 * * *', async () => {
             message: `Your membership expires in ${diffDays} days.`
           }
         });
-        console.log(`[CRON] Notified user ${membership.userId} of expiry in ${diffDays} days.`);
+
+        // Notify Admins
+        const admins = await prisma.userGymRole.findMany({
+          where: { gymId: membership.gymId, role: 'GYM_ADMIN' }
+        });
+
+        for (const admin of admins) {
+          await prisma.notification.create({
+            data: {
+              userId: admin.userId,
+              title: 'Member Expiry Warning',
+              message: `Membership for user ${membership.user.fullName} is expiring in ${diffDays} days.`
+            }
+          });
+        }
+
+        console.log(`[CRON] Notified user ${membership.userId} and admins of expiry in ${diffDays} days.`);
       }
 
       // Grace Period Logic

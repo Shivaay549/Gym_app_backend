@@ -17,10 +17,28 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
   }
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    let user;
+    
+    // First, try decoding as custom JWT (for phone login)
+    try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+      if (decoded && decoded.id) {
+        user = { id: decoded.id };
+      }
+    } catch (e) {
+      // Not a valid custom JWT, fallback to Supabase
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error && data?.user) {
+        user = data.user;
+      } else if (error) {
+        res.status(403).json({ message: 'Invalid or expired token', error: error.message });
+        return;
+      }
+    }
 
-    if (error || !user) {
-      res.status(403).json({ message: 'Invalid or expired token', error: error?.message });
+    if (!user) {
+      res.status(403).json({ message: 'Invalid token' });
       return;
     }
 
@@ -32,6 +50,21 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     });
     
     req.userRoles = roles;
+
+    // Enforce active membership for purely MEMBER roles
+    if (roles.length > 0 && roles.every(r => r.role === 'MEMBER')) {
+      const activeMembership = await prisma.membership.findFirst({
+        where: {
+          userId: user.id,
+          status: { in: ['ACTIVE', 'GRACE_PERIOD'] }
+        }
+      });
+
+      if (!activeMembership) {
+        res.status(401).json({ message: 'Membership expired or not active. Please renew your plan.' });
+        return;
+      }
+    }
 
     next();
   } catch (error) {

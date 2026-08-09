@@ -1,36 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 import { prisma } from '../config/prisma';
-
-export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      res.status(401).json({ error: error.message });
-      return;
-    }
-
-    // Get user profile and roles
-    const profile = await prisma.profile.findUnique({
-      where: { id: data.user.id },
-      include: { gymRoles: true }
-    });
-
-    res.json({
-      message: 'Login successful',
-      token: data.session.access_token,
-      user: profile
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error during login' });
-  }
-};
+import jwt from 'jsonwebtoken';
 
 export const registerAdmin = async (req: Request, res: Response): Promise<void> => {
   const { email, password, fullName, phone, gymName } = req.body;
@@ -83,5 +54,57 @@ export const registerAdmin = async (req: Request, res: Response): Promise<void> 
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+};
+
+export const loginWithPhone = async (req: Request, res: Response): Promise<void> => {
+  const { phone } = req.body;
+  
+  if (!phone) {
+    res.status(400).json({ error: 'Phone number is required' });
+    return;
+  }
+
+  try {
+    const profile = await prisma.profile.findFirst({
+      where: { phone },
+      include: { gymRoles: true }
+    });
+
+    if (!profile) {
+      res.status(404).json({ error: 'User not found with this phone number' });
+      return;
+    }
+
+    // Check for active membership if user is a MEMBER
+    const isMemberOnly = profile.gymRoles.every(r => r.role === 'MEMBER');
+    if (isMemberOnly) {
+      const activeMembership = await prisma.membership.findFirst({
+        where: {
+          userId: profile.id,
+          status: { in: ['ACTIVE', 'GRACE_PERIOD'] }
+        }
+      });
+
+      if (!activeMembership) {
+        res.status(403).json({ error: 'No active membership plan found. Please contact the admin to renew your plan.' });
+        return;
+      }
+    }
+
+    // Generate custom JWT
+    const token = jwt.sign(
+      { id: profile.id, method: 'phone' }, 
+      process.env.JWT_SECRET || 'fallback_secret', 
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: profile
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error during phone login' });
   }
 };

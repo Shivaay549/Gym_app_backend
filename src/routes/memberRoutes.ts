@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createMember, getGymMembers, getMemberDetails } from '../controllers/memberController';
+import { createMember, getGymMembers, getMemberDetails, updateProfilePhoto } from '../controllers/memberController';
 import { authenticateToken, authorizeGymRole } from '../middlewares/auth';
 
 const router = Router();
@@ -8,5 +8,6 @@ const router = Router();
 router.post('/', authenticateToken, authorizeGymRole(['GYM_ADMIN']), createMember);
 router.get('/gym/:gymId', authenticateToken, authorizeGymRole(['GYM_ADMIN', 'TRAINER']), getGymMembers);
 router.get('/:id', authenticateToken, getMemberDetails); // Member themselves or Gym Admin can view
+router.put('/:id/profile-photo', authenticateToken, updateProfilePhoto);
 
 export default router;

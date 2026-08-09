@@ -59,7 +59,7 @@ export const getGymMembers = async (req: Request, res: Response): Promise<void> 
 
   try {
     const roles = await prisma.userGymRole.findMany({
-      where: { gymId, role: 'MEMBER' },
+      where: { gymId, role: { in: ['MEMBER', 'GYM_ADMIN'] } },
       include: {
         user: {
           include: {
@@ -105,6 +105,27 @@ export const getMemberDetails = async (req: Request, res: Response): Promise<voi
     }
 
     res.json(profile);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+};
+
+export const updateProfilePhoto = async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const { profilePhotoBase64 } = req.body; // e.g. "data:image/jpeg;base64,/9j/4AAQSk..."
+
+  if (!profilePhotoBase64) {
+    res.status(400).json({ error: 'Profile photo base64 string is required' });
+    return;
+  }
+
+  try {
+    const updatedProfile = await prisma.profile.update({
+      where: { id },
+      data: { profilePhotoUrl: profilePhotoBase64 }
+    });
+
+    res.json({ message: 'Profile photo updated successfully', profile: updatedProfile });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
