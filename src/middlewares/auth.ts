@@ -32,13 +32,13 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       if (!error && data?.user) {
         user = data.user;
       } else if (error) {
-        res.status(403).json({ message: 'Invalid or expired token', error: error.message });
+        res.status(401).json({ message: 'Session expired or invalid token', error: 'TOKEN_EXPIRED', detail: error.message });
         return;
       }
     }
 
     if (!user) {
-      res.status(403).json({ message: 'Invalid token' });
+      res.status(401).json({ message: 'Invalid token', error: 'TOKEN_INVALID' });
       return;
     }
 
